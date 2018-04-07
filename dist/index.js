@@ -3,12 +3,20 @@
     /**
      * Главный обьект для создания слайдера
      * @param {string} selector Селектор елемента для создания слайдера в нём.
+     * @param {object} options Настройки слайдера.
      */
-    function YorkeSlider(selector) {
+    function YorkeSlider(selector, options) {
         this._element = document.querySelector(selector);
         this._slides = [];
         this._buttons = [];
         this._currentSlide = 0;
+        this._arrows = ["left", "right"];
+        if (typeof options === 'object') {
+            this._options = options;
+        }
+        else {
+            this._options = {};
+        }
         this.config = {
             width: 900
         };
@@ -30,7 +38,12 @@
                     index: index
                 });
             });
-            this.initButtons();
+            if (YorkeFunctions.objValue(this._options, 'buttons') !== false) {
+                this.initButtons();
+            }
+            if (YorkeFunctions.objValue(this._options, 'arrows') !== false) {
+                this.initArrows();
+            }
             this.changeSlides();
         }
     };
@@ -47,6 +60,45 @@
             return item;
         });
         this._element.appendChild(buttonsContainer);
+    };
+    YorkeSlider.prototype.initArrows = function () {
+        for (let i = 0; i < 2; i++) {
+            let arrowDirection = this._arrows[i];
+            let arrow = YorkeFunctions.create('button', {
+                className: `yorke--arrow-container yorke--container-${arrowDirection}`,
+                append: (c) => {
+                    return c("span", {
+                        className: `yorke--arrow yorke--arrow-${arrowDirection}`
+                    });
+                },
+                onclick: (e) => { this.changeSlideByArrow(e, arrowDirection); }
+            });
+            this._view.appendChild(arrow);
+        }
+    };
+    /**
+     * @param {object} event MouseEvent
+     * @param {string} dir   Куда слайдить
+     */
+    YorkeSlider.prototype.changeSlideByArrow = function (event, dir) {
+        let d;
+        if (dir === 'right') {
+            d = 1;
+        }
+        else {
+            d = -1;
+        }
+        let currentSlide = this._currentSlide + d;
+        if (currentSlide >= this._slides.length) {
+            this._currentSlide = 0;
+        }
+        else if (currentSlide < 0) {
+            this._currentSlide = this._slides.length - 1;
+        }
+        else {
+            this._currentSlide = currentSlide;
+        }
+        this.changeSlides();
     };
     YorkeSlider.prototype.changeSlides = function () {
         let _currentSlide = this._currentSlide;
@@ -68,6 +120,7 @@
     YorkeSlider.prototype.classNames = function () {
         let slidesContainer = this._element.querySelector('.slides');
         if (slidesContainer) {
+            this._view = slidesContainer;
             slidesContainer.className = "yorke--slider-view";
         }
         this._element.className = "yorke--slider";
@@ -115,14 +168,20 @@
                     element.getAttribute(attribute, elementOptions[key][attribute]);
                 }
             }
-            else if (key === 'append' && typeof key === 'function') {
-                element.appendChild(elementOptions[key](create));
+            else if (key === "append" && typeof elementOptions[key] === 'function') {
+                element.appendChild(elementOptions[key](YorkeFunctions.create));
             }
             else {
                 element[key] = elementOptions[key];
             }
         }
         return element;
+    };
+    YorkeFunctions.objValue = function (object, key) {
+        if (typeof object[key] !== 'undefined') {
+            return object[key];
+        }
+        return {};
     };
     window.YorkeSlider = YorkeSlider;
 }());
